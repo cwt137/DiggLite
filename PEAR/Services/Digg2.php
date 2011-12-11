@@ -7,7 +7,7 @@
  * @category  Services
  * @package   Services_Digg2
  * @author    Bill Shupp <hostmaster@shupp.org> 
- * @copyright 2009 Digg, Inc.
+ * @copyright 2010 Digg, Inc.
  * @license   http://www.opensource.org/licenses/bsd-license.php FreeBSD
  * @link      http://github.com/digg/services_digg2
  */
@@ -15,7 +15,6 @@
 /**
  * Required files 
  */
-require_once 'Validate.php';
 require_once 'HTTP/Request2.php';
 require_once 'Services/Digg2/Exception.php';
 require_once 'HTTP/OAuth.php';
@@ -65,7 +64,7 @@ require_once 'HTTP/OAuth/Consumer/Request.php';
  * @category  Services
  * @package   Services_Digg2
  * @author    Bill Shupp <hostmaster@shupp.org> 
- * @copyright 2009 Digg, Inc.
+ * @copyright 2010 Digg, Inc.
  * @license   http://www.opensource.org/licenses/bsd-license.php FreeBSD
  * @link      http://github.com/digg/services_digg2
  */
@@ -85,14 +84,14 @@ class Services_Digg2
      * 
      * @var mixed
      */
-    protected $version = '1.0';
+    protected $version = '2.0';
 
     /**
      * Supported version numbers
      * 
      * @var $versions
      */
-    protected $versions = array('1.0');
+    protected $versions = array('1.0', '2.0');
 
     /**
      * Current group requested.  i.e., $digg->story->getAll(), the group is "story".
@@ -127,8 +126,15 @@ class Services_Digg2
     protected $writeMethods = array(
         'story.digg',
         'story.bury',
+        'story.hide',
         'comment.digg',
         'comment.bury',
+        'comment.post',
+        'user.follow',
+        'user.unfollow',
+        'getSavedStories',
+        'saveStory',
+        'removeStory',
         'oauth.verify'
     );
 
@@ -152,7 +158,7 @@ class Services_Digg2
      */
     public function setURI($uri)
     {
-        if (!Validate::uri($uri)) {
+        if (!filter_var($uri, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED)) {
             throw new Services_Digg2_Exception('Invalid URI: ' . $uri);
         }
         $this->uri = $uri;
@@ -293,8 +299,7 @@ class Services_Digg2
         if (count($args)) {
             $args = $args[0];
         }
-        $args['method'] = $this->getCurrentGroup() . '.' . $name;
-        return $this->sendRequest($args);
+        return $this->sendRequest($name, $args);
     }
 
     /**
@@ -306,9 +311,10 @@ class Services_Digg2
      * @throws Services_Digg2_Exception on error
      * @return stdObject response
      */
-    protected function sendRequest(array $args)
+    protected function sendRequest($method, array $args)
     {
-        $httpMethod = in_array($args['method'], $this->writeMethods) ?
+        $method = $this->currentGroup . '.' . $method;
+        $httpMethod = in_array($method, $this->writeMethods) ?
                       HTTP_Request2::METHOD_POST : HTTP_Request2::METHOD_GET;
 
         $this->getHTTPRequest2()->setMethod($httpMethod);
@@ -317,11 +323,12 @@ class Services_Digg2
         $args['type'] = 'json';
         $this->getHTTPRequest2()->setHeader('Accept: application/json');
 
-        $uri = $this->getURI() . '/' . $this->getVersion() . '/endpoint';
+        $uri = $this->getURI() . '/' . $this->getVersion() . '/'
+            . $method;
 
         if ($this->getHTTPOAuthConsumer() instanceof HTTP_OAuth_Consumer) {
             try {
-                return $this->parseResponse($this->sendOAuthRequest($uri, $args, $httpMethod));
+                return $this->parseResponse($this->sendOAuthRequest($uri, $args));
             } catch (HTTP_OAuth_Exception $e) {
                 throw new Services_Digg2_Exception($e->getMessage(), $e->getCode());
             }
@@ -342,7 +349,7 @@ class Services_Digg2
      * @ignore
      * @return HTTP_Request2_Response
      */
-    protected function sendOAuthRequest($uri, array $args, $httpMethod)
+    protected function sendOAuthRequest($uri, array $args)
     {
         $oauth = $this->getHTTPOAuthConsumer();
 
@@ -351,7 +358,7 @@ class Services_Digg2
         $consumerRequest->accept($this->getHTTPRequest2());
         $oauth->accept($consumerRequest);
 
-        return $oauth->sendRequest($uri, $args, $httpMethod)->getResponse();
+        return $oauth->sendRequest($uri, $args)->getResponse();
     }
 
     /**
@@ -395,10 +402,11 @@ class Services_Digg2
             );
         }
         $status = $response->getStatus();
+        $message = $status . ' - ' . $response->getReasonPhrase();
 
         if (strncmp($status, '2', 1) !== 0) {
-            throw new Services_Digg2_Exception($body->error->message,
-                                               $body->error->code,
+            throw new Services_Digg2_Exception($message,
+                                               $body->code,
                                                $status);
         }
         return $body;
