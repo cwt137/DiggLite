@@ -18,8 +18,8 @@ DiggLite::$options = array(
     'apiKey'       => 'key',
     'apiSecret'    => 'secret',
     'apiUrl'       => 'http://services.digg.com',
-    'apiEndpoint'  => 'http://services.digg.com/1.0/endpoint',
     'callback'     => 'http://yourwebsite.com/callback.php',
+    'apiEndpoint'  => 'http://services.digg.com/oauth/request_token',
     'authorizeUrl' => 'http://digg.com/oauth/authenticate',
     /*
     'cache'        => 'Memcache',
