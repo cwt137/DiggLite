@@ -59,7 +59,8 @@ implements ArrayAccess, Countable, IteratorAggregate
         'nonce',
         'verifier',
         'version',
-        'callback'
+        'callback',
+        'session_handle'
     );
 
     /**
@@ -95,7 +96,10 @@ implements ArrayAccess, Countable, IteratorAggregate
      */
     public function getParameters()
     {
-        return $this->parameters;
+        $params = $this->parameters;
+        ksort($params);
+
+        return $params;
     }
 
     /**
