@@ -58,12 +58,12 @@ class DiggLite
     protected $view = null;
 
     /**
-     * Digg containers
+     * Digg topics
      *
-     * @var array $containers Containers from the Digg API
-     * @see self::getContainers()
+     * @var array $topics Topics from the Digg API
+     * @see self::getTopics()
      */
-    protected $containers = array();
+    protected $topics = array();
 
     /**
      * Constructor
@@ -140,12 +140,12 @@ class DiggLite
             $this->view->user = $this->digg->oauth->verify()->oauthverification->user;
             $this->view->actions = $_SESSION['actions'];
         }
-        if (isset($_POST['event']) && $_POST['event'] == 'setContainer') {
-            $this->setContainer();
+        if (isset($_POST['event']) && $_POST['event'] == 'setTopic') {
+            $this->setTopic();
         }
 
-        $this->view->containers = $this->getContainers();
-        $this->getSelectedContainer();
+        $this->view->topics = $this->getTopics();
+        $this->getSelectedTopic();
         $this->getStories();
 
         return $this->view->render('list.tpl');
@@ -279,22 +279,22 @@ class DiggLite
     /**
      * Get the stories to display
      *
-     * Does logic to determine if a container has been selected or not.
+     * Does logic to determine if a topic has been selected or not.
      *
      * @return void
      */
     protected function getStories()
     {
         $this->digg->setURI(self::$options['apiUrl']);
-        $storiesKey = md5('stories' . $this->view->selectedContainer);
+        $storiesKey = md5('stories' . $this->view->selectedTopic);
 
         $stories = $this->cache->get($storiesKey);
         if (!$stories) {
-            $params = array('count' => 50);
-            if ($this->view->selectedContainer) {
-                $params['container'] = $this->view->selectedContainer;
+            $params = array('limit' => 50);
+            if ($this->view->selectedTopic) {
+                $params['topic'] = $this->view->selectedTopic;
             }
-            $stories = $this->digg->story->getPopular($params)->stories;
+            $stories = $this->digg->story->getTopNews($params)->stories;
             foreach ($stories as $story) {
                 $story->since = $this->getSinceTime($story->promote_date);
             }
@@ -351,64 +351,64 @@ class DiggLite
     }
 
     /**
-     * Determine selected container and set that container on the view 
+     * Determine selected topic and set that topic on the view 
      * 
      * @return void
      */
-    protected function getSelectedContainer()
+    protected function getSelectedTopic()
     {
-        $this->view->selectedContainer = null;
-        $this->view->containerTitle    = 'All Topics';
-        if (isset($_SESSION['selectedContainer'])) {
-            $this->view->selectedContainer = $_SESSION['selectedContainer'];
-            foreach ($this->view->containers as $container) {
-                if ($container->short_name == $_SESSION['selectedContainer']) {
-                    $this->view->containerTitle = $container->name;
+        $this->view->selectedTopic = null;
+        $this->view->topicTitle    = 'All Topics';
+        if (isset($_SESSION['selectedTopic'])) {
+            $this->view->selectedTopic = $_SESSION['selectedTopic'];
+            foreach ($this->view->topics as $topic) {
+                if ($topic->short_name == $_SESSION['selectedTopic']) {
+                    $this->view->topicTitle = $topic->name;
                 }
             }
         }
     }
 
     /**
-     * Set the users selected container
+     * Set the users selected topic
      *
      * @return void
      */
-    public function setContainer()
+    public function setTopic()
     {
-        if (!isset($_POST['container'])) {
+        if (!isset($_POST['topic'])) {
             return;
         }
 
-        if ($_POST['container'] == 'all') {
-            unset($_SESSION['selectedContainer']);
+        if ($_POST['topic'] == 'all') {
+            unset($_SESSION['selectedTopic']);
             return;
         }
 
-        foreach ($this->getContainers() as $container) {
-            if ($container->short_name == $_POST['container']) {
-                $_SESSION['selectedContainer'] = $_POST['container'];
-                $_SESSION['containerTopic']    = $container->name;
+        foreach ($this->getTopics() as $topic) {
+            if ($topic->short_name == $_POST['topic']) {
+                $_SESSION['selectedTopic'] = $_POST['topic'];
+                $_SESSION['topicTopic']    = $topic->name;
             }
         }
     }
 
     /**
-     * Get containers from the API for the drop down
+     * Get topics from the API for the drop down
      *
-     * @return array Container information
+     * @return array Topic information
      */
-    protected function getContainers()
+    protected function getTopics()
     {
-        $containersKey = md5('containers');
-        $containers    = $this->cache->get($containersKey);
-        if (!$containers) {
+        $topicsKey = md5('topics');
+        $topics    = $this->cache->get($topicsKey);
+        if (!$topics) {
             $this->digg->setURI(self::$options['apiUrl']);
-            $containers = $this->digg->container->getAll()->containers;
-            $this->cache->set($containersKey, $containers);
+            $topics = $this->digg->topic->getAll()->topics;
+            $this->cache->set($topicsKey, $topics);
         }
 
-        return $containers;
+        return $topics;
     }
 
 }

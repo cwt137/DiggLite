@@ -1,6 +1,6 @@
 (function() {
     $(document).ready(function() {
-        $('#container-form').change(function() {
+        $('#topic-form').change(function() {
             $(this).submit();
             return false;
         });
