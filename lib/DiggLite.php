@@ -137,7 +137,7 @@ class DiggLite
         if (empty($_SESSION['authorized'])) {
             $this->view->authURL = $this->getAuthURL();
         } else {
-            $this->view->user = $this->digg->oauth->verify()->oauthverification->user;
+            $this->view->user = $this->digg->user->getInfo()->user->username;
             $this->view->actions = $_SESSION['actions'];
         }
         if (isset($_POST['event']) && $_POST['event'] == 'setTopic') {
@@ -163,7 +163,7 @@ class DiggLite
     {
         $this->oauth->setToken($_SESSION['oauth_token']);
         $this->oauth->setTokenSecret($_SESSION['oauth_token_secret']);
-        $this->oauth->getAccessToken(self::$options['apiEndpoint'], $_GET['oauth_verifier'],
+        $this->oauth->getAccessToken(self::$options['accessTokenUrl'], $_GET['oauth_verifier'],
             array('method' => 'oauth.getAccessToken'), 'POST');
         $this->digg->accept($this->oauth);
 
@@ -174,7 +174,7 @@ class DiggLite
 
         // Gather dugg stories and put the story_id's in the session so
         // that we may display the story as dugg!
-        $user = $this->digg->oauth->verify()->oauthverification->user;
+        $user = $this->digg->user->getInfo()->user->username;
         $stories = $this->digg->user->getDugg(array('username' => $user))->stories;
         foreach ($stories as $story) {
             $_SESSION['actions'][$story->id] = 'dugg';
@@ -266,7 +266,7 @@ class DiggLite
      */
     public function getAuthURL()
     {
-        $this->oauth->getRequestToken(self::$options['apiEndpoint'], self::$options['callback'],
+        $this->oauth->getRequestToken(self::$options['requestTokenUrl'], self::$options['callback'],
             array('method' => 'oauth.getRequestToken'), 'POST');
 
         $_SESSION['oauth_token']        = $this->oauth->getToken();
