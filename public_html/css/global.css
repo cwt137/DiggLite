@@ -301,7 +301,7 @@ a { color: #105CB6; cursor: pointer; outline: none !important; }
     margin: 0;
     padding: 0;
     list-style: none;
-    background: url('http://digg.com/img/shade-news.gif') no-repeat;
+    background: url('/img/shade-news.gif') no-repeat;
 }
 
 #h-pri .submenu-drop li,
@@ -315,7 +315,7 @@ a { color: #105CB6; cursor: pointer; outline: none !important; }
     -moz-background-clip:border;
     -moz-background-inline-policy:continuous;
     -moz-background-origin:padding;
-    background:transparent url(http://www.digg.com/img/digg-box-2.gif) repeat scroll 0 0;
+    background:transparent url('/img/digg-box-2.gif') repeat scroll 0 0;
     display:block;
     font-weight:bold;
     margin-bottom:-5px;
@@ -326,14 +326,14 @@ a { color: #105CB6; cursor: pointer; outline: none !important; }
 }
 
 .thumbs-up {
-    background-image:url(http://www.digg.com/img/digg-box-thumbs-up.gif) !important;
+    background-image:url('/img/digg-box-thumbs-up.gif') !important;
 }
 
 li.digg-it, li.undigg-it, li.dugg-it, li.buried-it {
     -moz-background-clip:border;
     -moz-background-inline-policy:continuous;
     -moz-background-origin:padding;
-    background:transparent url(http://digg.com/img/digg-box-2.gif) repeat scroll 0 100%;
+    background:transparent url('/img/digg-box-2.gif') repeat scroll 0 100%;
     float:left;
     margin-top:1px;
     padding:0 0 7px 0;
@@ -352,16 +352,16 @@ li.digg-it:hover a {
 }
 
 .comments {
-    background: url(http://digg.com/img/tools.gif) no-repeat 0 -196px;
+    background: url('/img/tools.gif') no-repeat 0 -196px;
     word-spacing: -0.1em;
 }
 
 .share {
-    background: url(http://digg.com/img/tools.gif) no-repeat 0 4px;
+    background: url('/img/tools.gif') no-repeat 0 4px;
 }
 
 .bury-link {
-    background: url(http://digg.com/img/tools.gif) no-repeat 0 -96px;
+    background: url('/img/tools.gif') no-repeat 0 -96px;
     margin-right: 12px;
     padding-right: 2px;
 }
