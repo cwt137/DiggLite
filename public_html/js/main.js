@@ -1,6 +1,6 @@
 (function() {
     $(document).ready(function() {
-        $('#container-form').change(function() {
+        $('#topic-form').change(function() {
             $(this).submit();
             return false;
         });
@@ -10,7 +10,9 @@
 
         $('.digg-it').click(function() {
             var el = this;
-            var id = el.id.split('-').pop();
+            var id = el.id.match('diglink-(.+)').pop();
+            id = id.replace('_', ':');
+
             $.ajax({
                 type:     'POST',
                 url:      'digg.php',
@@ -37,7 +39,9 @@
 
         $('.bury-link').click(function() {
             var el = this;
-            var id = el.id.split('-').pop();
+            var id = el.id.match('bury-(.+)').pop();
+            id = id.replace('_', ':');
+
             $.ajax({
                 type:     'POST',
                 url:      'bury.php',

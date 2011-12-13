@@ -26,6 +26,10 @@ require_once 'HTTP/OAuth/Provider/Exception/InvalidRequest.php';
 /**
  * HTTP_OAuth_Provider_Request
  *
+ * NOTE:
+ * Currently, it's up to the developer to implement the provider side of
+ * timestamp and nonce checking.
+ *
  * @category  HTTP
  * @package   HTTP_OAuth
  * @author    Jeff Hodsdon <jeffhodsdon@gmail.com>
@@ -105,12 +109,15 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
     protected function apacheRequestHeaders()
     {
         if (function_exists('apache_request_headers')) {
+            // @codeCoverageIgnoreStart
             return apache_request_headers();
+            // @codeCoverageIgnoreEnd
         }
 
         return null;
     }
 
+    // @codeCoverageIgnoreStart
     /**
      * Pecl HTTP request headers
      *
@@ -129,6 +136,7 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
 
         return null;
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Set parameters from the incoming request 
@@ -160,19 +168,22 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
 
         if ($this->getRequestMethod() == 'POST') {
             $this->debug('getting data from POST');
-            $contentType = $this->getHeader('Content-Type');
-            if (substr($contentType, 0, 33) !== 'application/x-www-form-urlencoded') {
+            $contentType = substr($this->getHeader('Content-Type'), 0, 33);
+            if ($contentType !== 'application/x-www-form-urlencoded') {
                 throw new HTTP_OAuth_Provider_Exception_InvalidRequest('Invalid ' .
                     'content type for POST request');
             }
 
-            $params = array_merge($params,
-                $this->parseQueryString($this->getPostData()));
-        } else {
-            $this->debug('getting data from GET');
-            $params = array_merge($params,
-                $this->parseQueryString($this->getQueryString()));
+            $params = array_merge(
+                $params,
+                $this->parseQueryString($this->getPostData())
+            );
         }
+
+        $params = array_merge(
+            $params,
+            $this->parseQueryString($this->getQueryString())
+        );
 
         if (empty($params)) {
             throw new HTTP_OAuth_Provider_Exception_InvalidRequest('No oauth ' .
@@ -192,6 +203,12 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
      */
     public function isValidSignature($consumerSecret, $tokenSecret = '')
     {
+        if (!$this->oauth_signature_method) {
+            throw new HTTP_OAuth_Provider_Exception_InvalidRequest(
+                'Missing oauth_signature_method in request'
+            );
+        }
+
         $sign  = HTTP_OAuth_Signature::factory($this->oauth_signature_method);
         $check = $sign->build(
             $this->getRequestMethod(), $this->getUrl(),
@@ -255,6 +272,9 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
     /**
      * Gets incoming request URI
      *
+     * Checks if the schema/host is included and strips it.
+     * Thanks Naosumi! Bug #16800
+     *
      * @return string|null Request URI, null if doesn't exist
      */
     public function getRequestUri()
@@ -263,7 +283,13 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
             return null;
         }
 
-        return $_SERVER['REQUEST_URI'];
+        $uri = $_SERVER['REQUEST_URI'];
+        $pos = stripos($uri, '://');
+        if (!$pos) {
+            return $uri;
+        }
+
+        return substr($uri, strpos($uri, '/', $pos + 3));
     }
 
     /**
@@ -275,8 +301,10 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
      */
     public function getHeader($header)
     {
-        if (array_key_exists($header, $this->headers)) {
-            return $this->headers[$header];
+        foreach ($this->headers as $name => $value) {
+            if (strtolower($header) == strtolower($name)) {
+                return $value;
+            }
         }
 
         return null;
@@ -293,6 +321,7 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
         return $this->headers;
     }
 
+    // @codeCoverageIgnoreStart
     /**
      * Gets POST data
      *
@@ -302,6 +331,7 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
     {
         return file_get_contents('php://input');
     }
+    // @codeCoverageIgnoreEnd
 
     /**
      * Parses a query string
@@ -324,8 +354,8 @@ class HTTP_OAuth_Provider_Request extends HTTP_OAuth_Message
                 continue;
             }
 
-            list($key, $value)     = explode('=', $part);
-            $data[$key] = $value;
+            list($key, $value) = explode('=', $part);
+            $data[$key] = self::urldecode($value);
         }
 
         return $data;

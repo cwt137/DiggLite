@@ -58,12 +58,12 @@ class DiggLite
     protected $view = null;
 
     /**
-     * Digg containers
+     * Digg topics
      *
-     * @var array $containers Containers from the Digg API
-     * @see self::getContainers()
+     * @var array $topics Topics from the Digg API
+     * @see self::getTopics()
      */
-    protected $containers = array();
+    protected $topics = array();
 
     /**
      * Constructor
@@ -137,15 +137,15 @@ class DiggLite
         if (empty($_SESSION['authorized'])) {
             $this->view->authURL = $this->getAuthURL();
         } else {
-            $this->view->user = $this->digg->oauth->verify()->oauthverification->user;
+            $this->view->user = $this->digg->user->getInfo()->user->username;
             $this->view->actions = $_SESSION['actions'];
         }
-        if (isset($_POST['event']) && $_POST['event'] == 'setContainer') {
-            $this->setContainer();
+        if (isset($_POST['event']) && $_POST['event'] == 'setTopic') {
+            $this->setTopic();
         }
 
-        $this->view->containers = $this->getContainers();
-        $this->getSelectedContainer();
+        $this->view->topics = $this->getTopics();
+        $this->getSelectedTopic();
         $this->getStories();
 
         return $this->view->render('list.tpl');
@@ -163,7 +163,7 @@ class DiggLite
     {
         $this->oauth->setToken($_SESSION['oauth_token']);
         $this->oauth->setTokenSecret($_SESSION['oauth_token_secret']);
-        $this->oauth->getAccessToken(self::$options['apiEndpoint'], $_GET['oauth_verifier'],
+        $this->oauth->getAccessToken(self::$options['accessTokenUrl'], $_GET['oauth_verifier'],
             array('method' => 'oauth.getAccessToken'), 'POST');
         $this->digg->accept($this->oauth);
 
@@ -171,14 +171,6 @@ class DiggLite
         $_SESSION['oauth_token_secret'] = $this->oauth->getTokenSecret();
         $_SESSION['authorized']         = 1;
         $_SESSION['actions'] = array();
-
-        // Gather dugg stories and put the story_id's in the session so
-        // that we may display the story as dugg!
-        $user = $this->digg->oauth->verify()->oauthverification->user;
-        $stories = $this->digg->user->getDugg(array('username' => $user))->stories;
-        foreach ($stories as $story) {
-            $_SESSION['actions'][$story->id] = 'dugg';
-        }
 
         session_write_close();
 
@@ -206,7 +198,7 @@ class DiggLite
             return print(json_encode(array('error' => $e->getMessage())));
         }
 
-        if (empty($res->success->status)) {
+        if (empty($res->digg->status)) {
             return print(json_encode(array('error' => 'Ack! Digg on story was not successful')));
         }
 
@@ -228,13 +220,13 @@ class DiggLite
                 throw new Exception('No story id in request');
             }
 
-            $res = $this->digg->story->bury(array('story_id' => $_POST['story_id']));
+            $res = $this->digg->story->hide(array('story_id' => $_POST['story_id']));
             $_SESSION['actions'][$_POST['story_id']] = 'buried';
         } catch (Exception $e) {
             return print(json_encode(array('error' => $e->getMessage())));
         }
 
-        if (empty($res->success->status)) {
+        if (empty($res->hide->status)) {
             return print(json_encode(array('error' => 'Ack! Bury on story was not successful')));
         }
 
@@ -266,7 +258,7 @@ class DiggLite
      */
     public function getAuthURL()
     {
-        $this->oauth->getRequestToken(self::$options['apiEndpoint'], self::$options['callback'],
+        $this->oauth->getRequestToken(self::$options['requestTokenUrl'], self::$options['callback'],
             array('method' => 'oauth.getRequestToken'), 'POST');
 
         $_SESSION['oauth_token']        = $this->oauth->getToken();
@@ -279,24 +271,25 @@ class DiggLite
     /**
      * Get the stories to display
      *
-     * Does logic to determine if a container has been selected or not.
+     * Does logic to determine if a topic has been selected or not.
      *
      * @return void
      */
     protected function getStories()
     {
         $this->digg->setURI(self::$options['apiUrl']);
-        $storiesKey = md5('stories' . $this->view->selectedContainer);
+        $storiesKey = md5('stories' . $this->view->selectedTopic);
 
         $stories = $this->cache->get($storiesKey);
         if (!$stories) {
-            $params = array('count' => 50);
-            if ($this->view->selectedContainer) {
-                $params['container'] = $this->view->selectedContainer;
+            $params = array('limit' => 50);
+            if ($this->view->selectedTopic) {
+                $params['topic'] = $this->view->selectedTopic;
             }
-            $stories = $this->digg->story->getPopular($params)->stories;
+            $stories = $this->digg->story->getTopNews($params)->stories;
             foreach ($stories as $story) {
                 $story->since = $this->getSinceTime($story->promote_date);
+                $story->story_id = str_replace(':', '_', $story->story_id);
             }
 
             $this->cache->set($storiesKey, $stories, 30);
@@ -351,64 +344,64 @@ class DiggLite
     }
 
     /**
-     * Determine selected container and set that container on the view 
+     * Determine selected topic and set that topic on the view 
      * 
      * @return void
      */
-    protected function getSelectedContainer()
+    protected function getSelectedTopic()
     {
-        $this->view->selectedContainer = null;
-        $this->view->containerTitle    = 'All Topics';
-        if (isset($_SESSION['selectedContainer'])) {
-            $this->view->selectedContainer = $_SESSION['selectedContainer'];
-            foreach ($this->view->containers as $container) {
-                if ($container->short_name == $_SESSION['selectedContainer']) {
-                    $this->view->containerTitle = $container->name;
+        $this->view->selectedTopic = null;
+        $this->view->topicTitle    = 'All Topics';
+        if (isset($_SESSION['selectedTopic'])) {
+            $this->view->selectedTopic = $_SESSION['selectedTopic'];
+            foreach ($this->view->topics as $topic) {
+                if ($topic->short_name == $_SESSION['selectedTopic']) {
+                    $this->view->topicTitle = $topic->name;
                 }
             }
         }
     }
 
     /**
-     * Set the users selected container
+     * Set the users selected topic
      *
      * @return void
      */
-    public function setContainer()
+    public function setTopic()
     {
-        if (!isset($_POST['container'])) {
+        if (!isset($_POST['topic'])) {
             return;
         }
 
-        if ($_POST['container'] == 'all') {
-            unset($_SESSION['selectedContainer']);
+        if ($_POST['topic'] == 'all') {
+            unset($_SESSION['selectedTopic']);
             return;
         }
 
-        foreach ($this->getContainers() as $container) {
-            if ($container->short_name == $_POST['container']) {
-                $_SESSION['selectedContainer'] = $_POST['container'];
-                $_SESSION['containerTopic']    = $container->name;
+        foreach ($this->getTopics() as $topic) {
+            if ($topic->short_name == $_POST['topic']) {
+                $_SESSION['selectedTopic'] = $_POST['topic'];
+                $_SESSION['topicTopic']    = $topic->name;
             }
         }
     }
 
     /**
-     * Get containers from the API for the drop down
+     * Get topics from the API for the drop down
      *
-     * @return array Container information
+     * @return array Topic information
      */
-    protected function getContainers()
+    protected function getTopics()
     {
-        $containersKey = md5('containers');
-        $containers    = $this->cache->get($containersKey);
-        if (!$containers) {
+        $topicsKey = md5('topics');
+        $topics    = $this->cache->get($topicsKey);
+        if (!$topics) {
             $this->digg->setURI(self::$options['apiUrl']);
-            $containers = $this->digg->container->getAll()->containers;
-            $this->cache->set($containersKey, $containers);
+            $topics = $this->digg->topic->getAll()->topics;
+            $this->cache->set($topicsKey, $topics);
         }
 
-        return $containers;
+        return $topics;
     }
 
 }

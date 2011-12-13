@@ -14,18 +14,20 @@ ini_set('include_path', '../PEAR:../lib:' . get_include_path());
 require_once 'DiggLite.php';
 
 DiggLite::$options = array(
-    'debug'        => 0,
-    'apiKey'       => 'key',
-    'apiSecret'    => 'secret',
-    'apiUrl'       => 'http://services.digg.com',
-    'apiEndpoint'  => 'http://services.digg.com/1.0/endpoint',
-    'callback'     => 'http://yourwebsite.com/callback.php',
-    'authorizeUrl' => 'http://digg.com/oauth/authenticate',
+    'debug'           => 0,
+    'apiKey'          => 'key',
+    'apiSecret'       => 'secret',
+    'apiUrl'          => 'http://services.digg.com',
+    'apiEndpoint'     => 'http://services.digg.com/1.0/endpoint',
+    'accessTokenUrl'  => 'http://services.digg.com/oauth/access_token',
+    'requestTokenUrl' => 'http://services.digg.com/oauth/request_token',
+    'callback'        => 'http://yourwebsite.com/callback.php',
+    'authorizeUrl'    => 'http://digg.com/oauth/authenticate',
     /*
-    'cache'        => 'Memcache',
+    'cache'           => 'Memcache',
     */
-    'cache'        => 'CacheLite',
-    'cacheOptions' => array(
+    'cache'           => 'CacheLite',
+    'cacheOptions'    => array(
     /*
         'servers' => array(
             array(
