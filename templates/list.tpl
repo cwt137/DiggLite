@@ -58,7 +58,7 @@
 				<ul class="news-digg">
 					<li class="digg-count">
 					<a href="<?php echo $story->permalink; ?>"><strong class="diggs-strong"><?php echo $story->diggs; ?></strong> diggs </a>  </li>
-					<li class="<?php echo ($dugg) ? 'dugg-it' : 'digg-it thumbs-up'; ?>" id="diglink-<?php echo $story->id; ?>">
+					<li class="<?php echo ($dugg) ? 'dugg-it' : 'digg-it thumbs-up'; ?>" id="diglink-<?php echo $story->story_id; ?>">
                         <?php echo ($dugg) ? '<span>dugg!</span>' : '<a href="#">digg</a>'; ?>
                     </li>
 				</ul>

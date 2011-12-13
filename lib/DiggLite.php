@@ -198,7 +198,7 @@ class DiggLite
             return print(json_encode(array('error' => $e->getMessage())));
         }
 
-        if (empty($res->success->status)) {
+        if (empty($res->digg->status)) {
             return print(json_encode(array('error' => 'Ack! Digg on story was not successful')));
         }
 
@@ -220,13 +220,13 @@ class DiggLite
                 throw new Exception('No story id in request');
             }
 
-            $res = $this->digg->story->bury(array('story_id' => $_POST['story_id']));
+            $res = $this->digg->story->hide(array('story_id' => $_POST['story_id']));
             $_SESSION['actions'][$_POST['story_id']] = 'buried';
         } catch (Exception $e) {
             return print(json_encode(array('error' => $e->getMessage())));
         }
 
-        if (empty($res->success->status)) {
+        if (empty($res->hide->status)) {
             return print(json_encode(array('error' => 'Ack! Bury on story was not successful')));
         }
 
@@ -289,6 +289,7 @@ class DiggLite
             $stories = $this->digg->story->getTopNews($params)->stories;
             foreach ($stories as $story) {
                 $story->since = $this->getSinceTime($story->promote_date);
+                $story->story_id = str_replace(':', '_', $story->story_id);
             }
 
             $this->cache->set($storiesKey, $stories, 30);
