@@ -42,12 +42,8 @@
 <?php
     foreach($stories as $story) {
         $dugg = false;
-        if (isset($actions) && isset($actions[$story->id])) {
-            if ($actions[$story->id] == 'dugg') {
-                $dugg = true;
-            } else {
-                continue;
-            }
+        if(isset($story->dugg) || (isset($actions[$story->story_id]) && $actions[$story->story_id] == 'dugg')) {
+            $dugg = true;
         }
 
 ?>

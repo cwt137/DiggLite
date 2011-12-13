@@ -172,14 +172,6 @@ class DiggLite
         $_SESSION['authorized']         = 1;
         $_SESSION['actions'] = array();
 
-        // Gather dugg stories and put the story_id's in the session so
-        // that we may display the story as dugg!
-        $user = $this->digg->user->getInfo()->user->username;
-        $stories = $this->digg->user->getDugg(array('username' => $user))->stories;
-        foreach ($stories as $story) {
-            $_SESSION['actions'][$story->id] = 'dugg';
-        }
-
         session_write_close();
 
         return header('Location: /');
